@@ -7,7 +7,7 @@ RUN apt-get update \
 
 RUN ln -s /usr/bin/nodejs /usr/bin/node
 
-RUN echo "172.31.19.128 delorean.svds.io maven.svds.io"  >> /etc/host
+RUN echo "172.31.19.128 delorean.svds.io maven.svds.io"  >> /etc/hosts
 
 USER jenkins
 ENV THUNDERBIRDS GO
