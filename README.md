@@ -1,128 +1,151 @@
 # docker-jenkins
 
-Things that need to be in the install to run our projects.
+The recommended way to run this is with:
+
+    sudo docker run --name=svds-jenkins -v /mnt/jenkins:/var/jenkins_home  -p 8080:8080 -p 50000:50000 -d svds/jenkins
+
+Where:
+
+ * /mnt/jenkins is a host directory that will have all the jenkins state which you want to last between reboots.
+ * 8080 is the port where the jenkins web interface is served.
+ * 50000 is the port where jenkins slave nodes communicate with this master.
+ * -d runs it in detached mode.
+
+When jenkins-docker starts on an empty home volume, /mnt/jenkins in this case. it fills it with the proper jenkins
+directory structure, the default plugins and the secret.key and secret directory.
+
+You should be able to see the interface by going to the public IP of the host and port 8080 if you used -p 8080:8080 and
+port 1111 if you used -p 1111:8080
+
+## Configuration
+
+You now have a jenkins that can do, not so much.  You need to configure it for your needs.  Below is a list
+of possible things you may need for your installation. The link will take you to the configuration.
+
+ * [Artifactory](#add-artifactory) - For Artifact repository and/or maven proxy.
+ * [AWS](#add-aws) - enable aws integration for jenkins user in custom scripts.
+ * [GitHub Read Repo](#add-github-read-repo) - Enable reading from Github repos during builds
+ * [GitHub Web Hooks](#add-github-web-hooks) - Enable builds to be triggered from GitHub on repo commits
+ * [Github Pull Request](#add-github-pull-request) - Utilities to provide build and regression infomation for Pulls
+ * [GPG](#add-gpg) - enable encryption in custom scripts
+ * [java](#add-java) - configure JDKs
+ * [Maven](#add-maven) - enable Maven Builds
+ * [Slack](#add-slack) - add notifications to slack
+ * [SonarQube](#add-sonarqube) - Integrate quality metrics with builds
 
 
-    sudo apt-get update
-    sudo apt-get upgrade
-    sudo apt-get -y install openjdk-7-jdk
-    sudo apt-get -y install apache2
+<a id='add-artifactory'></a>
+## Artifactory
 
-    wget -q -O - https://jenkins-ci.org/debian/jenkins-ci.org.key | sudo apt-key add -
-    sudo sh -c 'echo deb http://pkg.jenkins-ci.org/debian binary/ > /etc/apt/sources.list.d/jenkins.list'
-    sudo apt-get update
-    sudo apt-get -y install jenkins
-    sudo apt-get -y install git
+If artifactory is already running then you just have to know:
 
-Jenkins home is in /var/lib/jenkins
-
-    sudo apt-get install -y npm
-
-    sudo apt-get install -y node
-
-    sudo apt-get install -y nodejs-legacy
-
-
-    sudo apt-get install unzip
-    curl "https://s3.amazonaws.com/aws-cli/awscli-bundle.zip" -o "awscli-bundle.zip"
-    unzip awscli-bundle.zip
-    sudo ./awscli-bundle/install -i /usr/local/aws -b /usr/local/bin/aws
-
-
-
-Trying to pull together a jenkins command to start up jenkins.
-
-Usind the code in
-
-/etc/inid.d/jenkins and /etc/default/jenkins
-
-
-This is the line that gets executed
-
-    $SU -l $JENKINS_USER --shell=/bin/bash -c "$DAEMON $DAEMON_ARGS -- $JAVA $JAVA_ARGS -jar $JENKINS_WAR $JENKINS_ARGS" || return 2
-
-
-$SU is /bin/su from the /etc/init.d/jenkins
-
-That turns into USER
-
-The environment variables in /etc/default/jenkins I create ENV variables here
-
-    USER jenkins
-
-    ENV NAME jenkins
-    # Allow graphs etc. to work even when an X server is present
-    ENV JAVA_ARGS "-Djava.awt.headless=true"
-    ENV JENKINS_WAR "/usr/share/jenkins/jenkins.war"
-    ENV JENKINS_HOME "/var/lib/jenkins"
-    ENV RUN_STANDALONE "true"
-    ENV JENKINS_LOG=/var/log/jenkins/jenkins.log
-    ENV MAXOPENFILES 8192
-    ENV HTTP_PORT 8080
-    ENV AJP_PORT=-1
-    ENV PREFIX /jenkins
-    ENV JENKINS_ARGS "--webroot=/var/cache/$NAME/war --httpPort=$HTTP_PORT --ajp13Port=$AJP_PORT"
-
-    ENTRYPOINT ["java","$JAVA_ARGS","-jar","$JENKINS_WAR","JENKINS_ARGS"]
+ * DNS Name or IP Address of the host.
+ * port it is listening on. : Instructions below default to 8081
+ * User name and password with access to the repos : Instructions below default to jenkins/password
+ * names of the release and snapshot repos : Instructions below default to jenkins-release and jenkins-snapshot
 
 
 
-
-Here is my attempt at a fat ubuntu docker file that stays out of my way.  Turns out it can't install jenkins because the
-packages wants to stat the service and then set up certs.  So the dockerfile you see just mods the jenkins official dockerfile.
-
-One annoying thing about the dockerfile is that it runs as jenkins and does not have sudo or even an editor.  But maybe since its perfect...
-we can live with that. Debugging with it is a pain.
-
-    FROM ubuntu:14.04
-    MAINTAINER Larry Murdock "larry@svds.com
-
-    RUN apt-get install -y wget
-
-    RUN wget -q -O - https://jenkins-ci.org/debian/jenkins-ci.org.key | sudo apt-key add - \
-     && sh -c 'echo deb http://pkg.jenkins-ci.org/debian binary/ > /etc/apt/sources.list.d/jenkins.list'
-
-    RUN apt-get update && apt-get install -y \
-        openjdk-7-jdk \
-        apache2 \
-        git \
-        npm \
-        nodejs-legacy \
-        jenkins \
-        unzip \
-        curl \
-     && apt-get clean \
-     && rm -rf /var/lib/apt/lists/*
-
-    RUN curl "https://s3.amazonaws.com/aws-cli/awscli-bundle.zip" -o "awscli-bundle.zip" \
-        unzip awscli-bundle.zip \
-        ./awscli-bundle/install -i /usr/local/aws -b /usr/local/bin/aws
-
-    # for main web interface:
-    EXPOSE 8080
-
-    # will be used by attached slave agents:
-    EXPOSE 50000
-    ENV SLAVE_AGENT_PORT 50000
+If not you will need to [Create a New Docker Instance of Artifactory](#New-Docker-Artifactory) as described
+below.
 
 
-    # Jenkins home directory is a volume, so configuration and build history
-    # can be persisted and survive image upgrades
-    VOLUME /var/lib/jenkins
+### Setting up the Artifactory Plugin
 
-    USER jenkins
 
-    ENV NAME jenkins
-    # Allow graphs etc. to work even when an X server is present
-    ENV JAVA_ARGS "-Djava.awt.headless=true"
-    ENV JENKINS_WAR "/usr/share/jenkins/jenkins.war"
-    ENV JENKINS_HOME "/var/lib/jenkins"
-    ENV RUN_STANDALONE "true"
-    ENV JENKINS_LOG "/var/log/jenkins/jenkins.log"
-    ENV MAXOPENFILES 8192
-    ENV HTTP_PORT 8080
-    ENV AJP_PORT -1
-    ENV PREFIX "/jenkins"
-    ENV JENKINS_ARGS "--webroot=/var/cache/$NAME/war --httpPort=$HTTP_PORT --ajp13Port=$AJP_PORT"
+From the top level go back into `Manage Jenkins` and pick `Manage Plugins`.   Got to the available  tab
+and search for `Artifactory`  Choose that install it and any dependencies.
 
-    ENTRYPOINT ["java","$JAVA_ARGS","-jar","$JENKINS_WAR","JENKINS_ARGS"]
+
+Then to configure go back to `Manage Jenkins` and pick `Configure System`.  Find the artifactory section.
+
+The host port and user name and password are entered here.  The URL that
+is needed is of the form http://<dns or ip>:<port>/artifactory
+
+The repos are added to the projects.
+
+In the projects you add a post build action of Deploy Artifacts to Artifactory.
+
+Target release repository and snapshot repositorys can be entered directly.  instructions below assume
+you are putting them in jenkins-release and jenkins-snapshot repositories.
+
+
+<a id='New-Docker-Artifactory'></a>
+## Create a New Docker Instance of Artifactory
+
+You need a place on the host with three directories; data, logs, and backup as well as having docker
+installed.
+
+
+    sudo docker run --name svds-artifactory
+            -v /mnt/artifactory/data:/artifactory/data
+            -v /mnt/artifactory/logs:/artifactory/logs
+            -v /mnt/artifactory/backup:/artifactory/backup -p 8081:8080 -d mattgruter/artifactory
+
+
+login as Admin admin/password
+
+### Create Repo
+
+Logged in as admin I chose repositories. Then on the roght clicked the new button.
+
+1. Jenkins Release
+ * repository key :  jenkins-release
+ * default but then unchecked the "handle snapshots" so that it only has "handle releases" checked.
+
+2. Jenkins Snapshot
+ * repository key: jenkins-snapshot
+ * default but then unchecked the "handle releases" so that it only has "handle snapshots" checked.
+
+### create Jenkins user
+
+Logged in as admin.  I chose security/users.  Then on the right I click new.
+
+"New User" dialog:
+
+ * User Name : jenkins
+ * email Address : larry@svds.com
+ * password : password
+ * left the bottom check boxes to only check can update Profile.
+
+### create CI Permissions Group
+
+Loggied in as admin. I chose security/Permissions.  Then on the right I pick new.
+
+"New Permission Target" Dialog:
+
+ * Name: ci-permissions
+ * unchecked any local repository and added only jenkins-release and jenkins-snapshot
+
+###  Add The Server To Jenkins
+
+[Go back and Add Artifactory to Jenkins](#add-artifactory)
+
+
+<a id='add-aws'></a>
+## AWS Integration
+
+<a id='add-github-read-repo'></a>
+## Git Hub - Read Repo Ability
+
+<a id='add-github-web-hooks'></a>
+## Git Hub - Web hooks - Git Hub pushes build with Repo Commit Ability
+
+<a id='add-github-pull-request'></a>
+## Git Hub - Pull Request - Utilities to Build and Regress Pull Requests
+
+<a id='add-gpg'></a>
+## GPG Integration - encrypting files for deployment with GPG
+
+<a id='add-java'></a>
+## Java - Set up JDKs for your Java Programs
+
+<a id='add-maven'></a>
+## Maven - Set up Jenkins for Maven Builds
+
+<a id='add-slack'></a>
+## Slack - Add notifications to Slack
+
+<a id='add-sonarqube'></a>
+## SonarQube Integration - Add Quality Metrics to your Builds
+
