@@ -18,6 +18,9 @@ RUN curl "https://s3.amazonaws.com/aws-cli/awscli-bundle.zip" -o "awscli-bundle.
  &&  unzip awscli-bundle.zip \
  && ./awscli-bundle/install -i /usr/local/aws -b /usr/local/bin/aws
 
+# Install ChefDK to build chef solo bundles for deployment to our nodes.
+RUN curl https://opscode-omnibus-packages.s3.amazonaws.com/ubuntu/12.04/x86_64/chefdk_0.10.0-1_amd64.deb -o chefdk_0.10.0-1_amd64.deb \
+ && dpkg -i chefdk_0.10.0-1_amd64.deb
 
 # https://issues.jenkins-ci.org/browse/JENKINS-31089 workaround
 # changed disabledAlgoriths.  This work around was identified Oct 26, 2015
