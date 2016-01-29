@@ -37,7 +37,7 @@ of possible things you may need for your installation. The link will take you to
 Appendix
 
  * [Create a New Artifactory Instance](#New-Docker-Artifactory)
-
+ * [Create a New Sonarqube Instance](#New-Docker-SonarQube)
 
 <a id='add-artifactory'></a>
 ## Artifactory
