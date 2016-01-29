@@ -28,4 +28,5 @@ RUN curl https://opscode-omnibus-packages.s3.amazonaws.com/ubuntu/12.04/x86_64/c
 COPY java.security /usr/lib/jvm/java-8-openjdk-amd64/jre/lib/security/java.security
 
 USER jenkins
-ENV THUNDERBIRDS GO
+
+ENV THUNDERBIRDS "ARE GO"

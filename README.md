@@ -158,7 +158,8 @@ Then
 
 This will create two files `~/.ssh/id_rsa` and `~/.ssh/id_rsa.pub` You'll want to copy and paste the pub info into your
 github account.  Since the docker image doesn't have an editor just `cat ~/.ssh/id_rsa.pub` and then select and copy the
-text.
+text.  Note the documentation suggests creating a jenkins user that has push access to your repos. This is a really good
+idea since the user name is going to show in any pushed comments.
 
 Go to your account on git hub and then:
 
@@ -198,11 +199,76 @@ if you are using the key `~/.ssh/id_rsa` then you can simply choose the "From th
 <a id='add-github-web-hooks'></a>
 ## Git Hub - Web hooks - Git Hub pushes build with Repo Commit Ability
 
+
+The GitHub steps are pretty straight forward.  Note that tutorials that are 6 months old though, are wrong.   These
+pages change apparently pretty often cause most documents are wrong, and the plugin documentation isn't written in
+complete sentances.
+
+So as of January 28 2016..
+
+Go to your github organization web page as an owner.
+
+ * pick the settings tab.
+ * Pick webhooks
+ * click add web hook
+ * Payload URL :   https://yoursite.com:8080/github-webhook/
+ * content type : application/x-www-form-urlencoded
+ * active should be checked.
+
+When you add it, it will test it.  I first left the content type as application/json and this caused an error.
+
+On the jenkins side.. you must have your public IP exposed on port 8080.  On ours we limit that exposure to just the
+github servers, which are 192.30.252.0/22
+
+Next you have to got to each project you want triggered and check `build when a change is pushed to GitHub` under
+`Build Triggers`.
+
+
+ * Open the “Webhooks & Services” tab -> choose “Configure Services” -> find the Jenkins (GitHub plugin option) and fill it in with a similar URL to the following:
+
+http://<Name of Jenkins server>:8080/github-webhook/
+
 <a id='add-github-pull-request'></a>
 ## Git Hub - Pull Request - Utilities to Build and Regress Pull Requests
 
+Your jenkins user or other user with write access to the repos you want to enable automatic builds on pull requests.. needs to
+log into github and go to Settings:
+
+ * Choose Personal Access tokens on the left side.
+ * Token Description: Jenkins Git Hub Pull Request
+ * scope selection:
+   * Repo
+   * Admin:repo_hook
+   * notifications
+
+Not sure why there isn't an access private repos entry.. That would be to obvious I guess. Hopefully one of the above is
+good.
+
+When you click `generate token` you need to copy the hex code string.  you wont see it again.
+
+
+On the Jenkins side go into system configuration and under the `Github Pull Request Builder`L
+
+ * GitHub Server API URL : https://api.github.com
+ * Shared secret : paste the token you copied from github
+ * credentials :
+   * chose kind: secret text
+   * secret : Paste the token you copied from github
+   * description : jenkins-svds github personal access token
+
+Add it then you have to choose it.
+
+You then should test it with the tests below it.
+
 <a id='add-gpg'></a>
 ## GPG Integration - encrypting files for deployment with GPG
+
+Silicon Valley Data Science has a system for pushing out encryped bundles to systems with chef.
+
+This section will make more sense if we open source those packages and we are working on that.
+
+Meanwhile.. you do have gpg and chefdk installed in this docker image and lets just say that we use those
+to securely push code to our servers from Jenkins
 
 <a id='add-java'></a>
 ## Java - Set up JDKs for your Java Programs
@@ -251,6 +317,8 @@ then you will not see settings. Find an admin or become one.
 
 Chosing settings takes you to the web site and you have to log in.  Once you do you will see Team Settings with an
 Authentication tab.
+
+
 
 if you aren't a paid slack team.. then it offers to upgrade you, otherwise no slack jenkins for you.
 
