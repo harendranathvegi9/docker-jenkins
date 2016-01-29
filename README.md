@@ -196,6 +196,19 @@ centos it will be in /var/lib/jenkins.  This is will be a source of frustration 
 
 if you are using the key `~/.ssh/id_rsa` then you can simply choose the "From the Jenkins Master ~/.ssh"
 
+#### Turning off Strict Host Checking .ssh/config
+
+if you ever end up with this error:
+
+    Host key verification failed.
+
+It may be a result of GitHub's strict host checking.  If you get this error, or you are just want
+to avoid the possiblity of getting it.  Add this to your `~/.ssh/config` :
+
+    Host *
+        StrictHostKeyChecking no
+
+
 <a id='add-github-web-hooks'></a>
 ## Git Hub - Web hooks - Git Hub pushes build with Repo Commit Ability
 
@@ -446,7 +459,7 @@ In the postgres command line client `psql` enter.
 
     CREATE USER sonar WITH PASSWORD 'sonar';
     CREATE DATABASE sonar;
-    GRANT ALL PRIVILEGES ON DATABSE sonar TO sonar;
+    GRANT ALL PRIVILEGES ON DATAABSE sonar TO sonar;
 
 
 SonarQube's interface defaults to port 9000.  Open that port to where ever you want on the
