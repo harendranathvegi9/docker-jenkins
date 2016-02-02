@@ -459,14 +459,23 @@ In the postgres command line client `psql` enter.
 
     CREATE USER sonar WITH PASSWORD 'sonar';
     CREATE DATABASE sonar;
-    GRANT ALL PRIVILEGES ON DATAABSE sonar TO sonar;
+    GRANT ALL PRIVILEGES ON DATABASE sonar TO sonar;
 
 
 SonarQube's interface defaults to port 9000.  Open that port to where ever you want on the
 
     sudo docker run --name=svds-sonarqube -p 9000:9000
     --env SONARQUBE_JDBC_URL="jdbc:postgresql://cdhdb.cyfxxurxfj6o.us-west-2.rds.amazonaws.com:5432/sonar"
+    -v /mnt/sonarqube/data:/opt/sonarqube/data -v /mnt/sonarqube/extensions:/opt/sonarqube/extensions
     -d sonarqube
+
+Finally you need to set up host volumes for the state in the container.  The SonarQube container
+has the following volumes.
+
+    /opt/sonarqube/data
+    /opt/sonarqube/extensions
+
+I created these two directories on /mnt under a sonarqube directory.
 
 If the tables are not there it will generate them automatically.
 
